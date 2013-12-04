@@ -1,0 +1,1050 @@
+        <!DOCTYPE html>
+        <html>
+        <head>
+                <meta charset="utf-8">
+        <title>PriorityQueue&lt;E&gt; class / priority_queue Library / Dart Documentation</title>
+        <link rel="stylesheet" type="text/css"
+            href="../styles.css">
+        <link href="//fonts.googleapis.com/css?family=Open+Sans:400,600,700,800" rel="stylesheet" type="text/css">
+        <link rel="shortcut icon" href="../favicon.ico">
+        
+        </head>
+        <body data-library="priority_queue" data-type="PriorityQueue&amp;lt;E&amp;gt;">
+        <div class="page">
+        <div class="header">
+          <a href="../index.html"><div class="logo"></div></a>
+          <a href="../index.html">Dart Documentation</a>
+         &rsaquo; <a href="../priority_queue.html">priority_queue</a> &rsaquo; <a href="../priority_queue/PriorityQueue.html">PriorityQueue&lt;E&gt;</a>        <div id="search-box">
+          <input type="search" name="q" id="q" autocomplete="off"
+              class="search-input" placeholder="Search API">
+        </div>
+        
+      </div>
+      <div class="drop-down" id="drop-down"></div>
+      
+        <div class="nav">
+        
+</div>
+<div class="content">
+        <h2><strong>PriorityQueue&lt;E&gt;</strong>
+          class
+        </h2>
+        
+<button id="show-inherited" class="show-inherited">Hide inherited</button>
+<div class="doc">
+<pre class="source">
+class PriorityQueue&lt;E&gt; extends IterableBase&lt;E&gt; {
+ final Comparator&lt;E&gt; _comparator;
+ final List&lt;E&gt; _elements;
+ /* nullable */ final Map&lt;E, Set&lt;int&gt;&gt; _positions;
+
+ bool get _fastLookup =&gt; _positions != null;
+
+ /**
+  * Creates a [PriorityQueue] from [values].
+  *
+  * Worst case complexity: `O(values.length)`.
+  *
+  * If [comparator] is specified, it is used for comparing values instead of
+  * [E]'s `compareTo` method.
+  *
+  * If [fastLookup] is true then [remove] and [contains] will be much faster,
+  * but [add] and [removeMax] will be slightly slower (see documentation of
+  * these methods for details).
+  */
+ PriorityQueue.from(Iterable&lt;E&gt; values,
+                    {int comparator(E value1, E value2),
+                     fastLookup: false})
+     : _comparator = (comparator == null) ? Comparable.compare : comparator
+     , _elements = values.toList()
+     , _positions = fastLookup ? new Map&lt;E, Set&lt;int&gt;&gt;() : null {
+    if (_fastLookup) {
+      for (int i = 0; i &lt; _elements.length; i++) {
+        final pos = _positions
+            .putIfAbsent(_elements[i], () =&gt; new Set&lt;int&gt;())
+            .add(i);
+      }
+    }
+   _buildHeap();
+ }
+
+ /**
+  * Creates an empty [PriorityQueue].
+  *
+  * Worst case complexity: `O(1)`.
+  *
+  * If [comparator] is specified, it is used for comparing values instead of
+  * [E]'s `compareTo` method.
+  *
+  * If [fastLookup] is true then [remove] and [contains] will be much faster,
+  * but [add] and [removeMax] will be slightly slower (see documentation of
+  * these methods for details).
+  */
+ PriorityQueue({int comparator(E value1, E value2), fastLookup: false})
+     : this.from([], comparator: comparator, fastLookup: fastLookup);
+
+ void _swap(int i, int j) {
+   final origi = _elements[i];
+   final origj = _elements[j];
+   _elements[i] = origj;
+   _elements[j] = origi;
+   if (_fastLookup) {
+     final posi = _positions[origj];
+     final posj = _positions[origi];
+     posi.remove(j);
+     posj.remove(i);
+     posi.add(i);
+     posj.add(j);
+   }
+ }
+
+ void _buildHeap() {
+   for (int i = (_elements.length ~/ 2) - 1; i &gt;= 0; i--) {
+     _heapify(i);
+   }
+ }
+
+ void _heapify(i) {
+   final left = 2 * i + 1;
+   final right = 2 * i + 2;
+   var largest = i;
+
+   if ((left &lt; _elements.length)
+       &amp;&amp; (_comparator(_elements[left], _elements[largest]) &gt; 0)) {
+     largest = left;
+   }
+   if ((right &lt; _elements.length)
+       &amp;&amp; (_comparator(_elements[right], _elements[largest]) &gt; 0)) {
+     largest = right;
+   }
+   if (largest != i) {
+     _swap(i, largest);
+     _heapify(largest);
+   }
+ }
+
+ /**
+  * Adds value to this queue.
+  *
+  * Worst case complexity: `O(log length)`.
+  */
+ void add(E value) {
+   _elements.add(value);
+   final last = _elements.length - 1;
+   if (_fastLookup) {
+     _positions.putIfAbsent(value, () =&gt; new Set&lt;int&gt;()).add(last);
+   }
+   _bubbleUp(last);
+ }
+
+ void _bubbleUp(int i) {
+   if (i == 0) {
+     return;
+   }
+   final parent = (i - 1) ~/ 2;
+   if (_comparator(_elements[parent], _elements[i]) &lt; 0) {
+     _swap(i, parent);
+     _bubbleUp(parent);
+   }
+ }
+
+ void _forceBubbleUp(int i) {
+   if (i == 0) {
+     return;
+   }
+   final parent = (i - 1) ~/ 2;
+   _swap(i, parent);
+   _forceBubbleUp(parent);
+ }
+
+ /**
+  * Returns the maximum element of this queue without removing it.
+  *
+  * Worst case complexity: `O(1)`.
+  */
+ E peek() {
+   if (isEmpty) {
+     throw new StateError("queue is empty");
+   }
+   return _elements[0];
+ }
+
+ /**
+  * Removes the maximum element from this queue and returns it.
+  *
+  * Worst case complexity: `O(log length)`.
+  */
+ E removeMax() {
+   if (isEmpty) {
+     throw new StateError("queue is empty");
+   }
+   final last = _elements.length - 1;
+   final origRoot = _elements[0];
+   final origLast = _elements[last];
+   _elements[0] = origLast;
+   _elements.removeLast();
+   if (_fastLookup) {
+     if (_elements.isEmpty) {
+       _positions.clear();
+     } else {
+       final pos1 = _positions[origLast];
+       final pos2 = _positions[origRoot];
+       pos1.remove(last);
+       pos2.remove(0);
+       pos1.add(0);
+       if (pos2.isEmpty) {
+         _positions.remove(origRoot);
+       }
+     }
+   }
+   _heapify(0);
+   return origRoot;
+ }
+
+ /**
+  * Removes the first occurence of value from this queue.
+  *
+  * Returns true if value was in the queue, false otherwise. Worst case
+  * complexity: worst case complexity of [HashMap]'s lookup + `O(log length)`
+  * if the queue was built with `fastLookup: true`, `O(length)` otherwise.
+  */
+ bool remove(E value) {
+   if (_fastLookup) {
+     final pos = _positions[value];
+     if (pos != null &amp;&amp; !pos.isEmpty) {
+       _removeAt(pos.first);
+       return true;
+     }
+   } else {
+     int i = 0;
+     while ((i &lt; _elements.length) &amp;&amp; (_elements[i] != value)) {
+       i++;
+     }
+     if (i != _elements.length) {
+       _removeAt(i);
+       return true;
+     }
+   }
+   return false;
+ }
+
+ void _removeAt(i) {
+   final elem = _elements[i];
+   _forceBubbleUp(i);
+   removeMax();
+ }
+
+ @override
+ Iterator&lt;E&gt; get iterator =&gt; _elements.iterator;
+
+ // optimized versions of Iterable's methods
+
+ /**
+  * Returns true if this queue contains an value equal to [value].
+  *
+  * Worst case complexity: worst case complexity of [HashMap]'s lookup if the
+  * queue was built with `fastLookup: true`, `O(length)` otherwise.
+  */
+ @override
+ bool contains(E value) {
+   return _fastLookup
+       ? _positions.containsKey(value)
+       : _elements.contains(value);
+ }
+
+ @override
+ int get length =&gt; _elements.length;
+
+ @override
+ bool get isEmpty =&gt; _elements.isEmpty;
+
+ @override
+ bool get isNotEmpty =&gt; _elements.isNotEmpty;
+
+ @override
+ E get first =&gt; _elements.first;
+
+ @override
+ E get last =&gt; _elements.last;
+
+ @override
+ E elementAt(int index) =&gt; _elements[index];
+
+ @override
+ String toString() =&gt; _elements.toString();
+}
+</pre>
+</div>
+<h3>Extends</h3>
+<p>
+<span class="type-box"><span class="icon-class"></span><a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase&lt;E&gt;</a></span>&nbsp;&gt;&nbsp;<span class="type-box"><span class="icon-class"></span><strong>PriorityQueue&lt;E&gt;</strong></span></p>
+<div>
+<h3>Constructors</h3>
+<div class="method"><h4 id="">
+<button class="show-code">Code</button>
+new <strong>PriorityQueue</strong>({<a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> comparator(<a href="../priority_queue/PriorityQueue.html">E</a> value1, <a href="../priority_queue/PriorityQueue.html">E</a> value2), fastLookup: false}) <a class="anchor-link" href="#"
+              title="Permalink to PriorityQueue&lt;E&gt;.PriorityQueue">#</a></h4>
+<div class="doc">
+<p>Creates an empty <a class="crossref" href="../priority_queue/PriorityQueue.html">PriorityQueue</a>.</p>
+<p>Worst case complexity: <code>O(1)</code>.</p>
+<p>If 
+<span class="param">comparator</span> is specified, it is used for comparing values instead of
+<a class="crossref" href="../priority_queue/PriorityQueue.html">E</a>'s <code>compareTo</code> method.</p>
+<p>If 
+<span class="param">fastLookup</span> is true then <a class="crossref" href="../priority_queue/PriorityQueue.html#remove">remove</a> and <a class="crossref" href="../priority_queue/PriorityQueue.html#contains">contains</a> will be much faster,
+but <a class="crossref" href="../priority_queue/PriorityQueue.html#add">add</a> and <a class="crossref" href="../priority_queue/PriorityQueue.html#removeMax">removeMax</a> will be slightly slower (see documentation of
+these methods for details).</p>
+<pre class="source">
+PriorityQueue({int comparator(E value1, E value2), fastLookup: false})
+   : this.from([], comparator: comparator, fastLookup: fastLookup);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="from">
+<button class="show-code">Code</button>
+new <strong>PriorityQueue.from</strong>(<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; values, {<a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> comparator(<a href="../priority_queue/PriorityQueue.html">E</a> value1, <a href="../priority_queue/PriorityQueue.html">E</a> value2), fastLookup: false}) <a class="anchor-link" href="#from"
+              title="Permalink to PriorityQueue&lt;E&gt;.PriorityQueue.from">#</a></h4>
+<div class="doc">
+<p>Creates a <a class="crossref" href="../priority_queue/PriorityQueue.html">PriorityQueue</a> from 
+<span class="param">values</span>.</p>
+<p>Worst case complexity: <code>O(values.length)</code>.</p>
+<p>If 
+<span class="param">comparator</span> is specified, it is used for comparing values instead of
+<a class="crossref" href="../priority_queue/PriorityQueue.html">E</a>'s <code>compareTo</code> method.</p>
+<p>If 
+<span class="param">fastLookup</span> is true then <a class="crossref" href="../priority_queue/PriorityQueue.html#remove">remove</a> and <a class="crossref" href="../priority_queue/PriorityQueue.html#contains">contains</a> will be much faster,
+but <a class="crossref" href="../priority_queue/PriorityQueue.html#add">add</a> and <a class="crossref" href="../priority_queue/PriorityQueue.html#removeMax">removeMax</a> will be slightly slower (see documentation of
+these methods for details).</p>
+<pre class="source">
+PriorityQueue.from(Iterable&lt;E&gt; values,
+                  {int comparator(E value1, E value2),
+                   fastLookup: false})
+   : _comparator = (comparator == null) ? Comparable.compare : comparator
+   , _elements = values.toList()
+   , _positions = fastLookup ? new Map&lt;E, Set&lt;int&gt;&gt;() : null {
+  if (_fastLookup) {
+    for (int i = 0; i &lt; _elements.length; i++) {
+      final pos = _positions
+          .putIfAbsent(_elements[i], () =&gt; new Set&lt;int&gt;())
+          .add(i);
+    }
+  }
+ _buildHeap();
+}
+</pre>
+</div>
+</div>
+</div>
+<div>
+<h3>Properties</h3>
+<div class="field"><h4 id="first">
+<button class="show-code">Code</button>
+final <a href="../priority_queue/PriorityQueue.html">E</a>         <strong>first</strong> <a class="anchor-link"
+            href="#first"
+            title="Permalink to PriorityQueue&lt;E&gt;.first">#</a>
+        </h4>
+        <div class="doc">
+<div class="inherited">
+<p>Returns the first element.</p>
+<p>If <code>this</code> is empty throws a <a class="crossref" href="http://api.dartlang.org/dart_core/StateError.html">StateError</a>. Otherwise this method is
+equivalent to <code>this.elementAt(0)</code></p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+E get first =&gt; _elements.first;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="isEmpty">
+<button class="show-code">Code</button>
+final <a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a>         <strong>isEmpty</strong> <a class="anchor-link"
+            href="#isEmpty"
+            title="Permalink to PriorityQueue&lt;E&gt;.isEmpty">#</a>
+        </h4>
+        <div class="doc">
+<div class="inherited">
+<p>Returns true if there is no element in this collection.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+bool get isEmpty =&gt; _elements.isEmpty;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="isNotEmpty">
+<button class="show-code">Code</button>
+final <a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a>         <strong>isNotEmpty</strong> <a class="anchor-link"
+            href="#isNotEmpty"
+            title="Permalink to PriorityQueue&lt;E&gt;.isNotEmpty">#</a>
+        </h4>
+        <div class="doc">
+<div class="inherited">
+<p>Returns true if there is at least one element in this collection.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+bool get isNotEmpty =&gt; _elements.isNotEmpty;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="iterator">
+<button class="show-code">Code</button>
+final <a href="http://api.dartlang.org/dart_core/Iterator.html" ref="external">Iterator</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt;         <strong>iterator</strong> <a class="anchor-link"
+            href="#iterator"
+            title="Permalink to PriorityQueue&lt;E&gt;.iterator">#</a>
+        </h4>
+        <div class="doc">
+<div class="inherited">
+<p>Returns an Iterator that iterates over this Iterable object.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+Iterator&lt;E&gt; get iterator =&gt; _elements.iterator;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="last">
+<button class="show-code">Code</button>
+final <a href="../priority_queue/PriorityQueue.html">E</a>         <strong>last</strong> <a class="anchor-link"
+            href="#last"
+            title="Permalink to PriorityQueue&lt;E&gt;.last">#</a>
+        </h4>
+        <div class="doc">
+<div class="inherited">
+<p>Returns the last element.</p>
+<p>If <code>this</code> is empty throws a <a class="crossref" href="http://api.dartlang.org/dart_core/StateError.html">StateError</a>.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+E get last =&gt; _elements.last;
+</pre>
+</div>
+</div>
+<div class="field"><h4 id="length">
+<button class="show-code">Code</button>
+final <a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a>         <strong>length</strong> <a class="anchor-link"
+            href="#length"
+            title="Permalink to PriorityQueue&lt;E&gt;.length">#</a>
+        </h4>
+        <div class="doc">
+<div class="inherited">
+<p>Returns the number of elements in <code>this</code>.</p>
+<p>Counting all elements may be involve running through all elements and can
+therefore be slow.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+int get length =&gt; _elements.length;
+</pre>
+</div>
+</div>
+<div class="field inherited"><h4 id="single">
+<button class="show-code">Code</button>
+final <a href="../priority_queue/PriorityQueue.html">E</a>         <strong>single</strong> <a class="anchor-link"
+            href="#single"
+            title="Permalink to PriorityQueue&lt;E&gt;.single">#</a>
+        </h4>
+        <div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns the single element in <code>this</code>.</p>
+<p>If <code>this</code> is empty or has more than one element throws a <a class="crossref" href="http://api.dartlang.org/dart_core/StateError.html">StateError</a>.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+E get single {
+ Iterator it = iterator;
+ if (!it.moveNext()) throw new StateError("No elements");
+ E result = it.current;
+ if (it.moveNext()) throw new StateError("More than one element");
+ return result;
+}
+</pre>
+</div>
+</div>
+</div>
+<div>
+<h3>Methods</h3>
+<div class="method"><h4 id="add">
+<button class="show-code">Code</button>
+void <strong>add</strong>(<a href="../priority_queue/PriorityQueue.html">E</a> value) <a class="anchor-link" href="#add"
+              title="Permalink to PriorityQueue&lt;E&gt;.add">#</a></h4>
+<div class="doc">
+<p>Adds value to this queue.</p>
+<p>Worst case complexity: <code>O(log length)</code>.</p>
+<pre class="source">
+void add(E value) {
+ _elements.add(value);
+ final last = _elements.length - 1;
+ if (_fastLookup) {
+   _positions.putIfAbsent(value, () =&gt; new Set&lt;int&gt;()).add(last);
+ }
+ _bubbleUp(last);
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="any">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> <strong>any</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> f(<a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#any"
+              title="Permalink to PriorityQueue&lt;E&gt;.any">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns true if one element of this collection satisfies the
+predicate <code>test</code>. Returns false otherwise.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+bool any(bool f(E element)) {
+ for (E element in this) {
+   if (f(element)) return true;
+ }
+ return false;
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="contains">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> <strong>contains</strong>(<a href="../priority_queue/PriorityQueue.html">E</a> value) <a class="anchor-link" href="#contains"
+              title="Permalink to PriorityQueue&lt;E&gt;.contains">#</a></h4>
+<div class="doc">
+<p>Returns true if this queue contains an value equal to 
+<span class="param">value</span>.</p>
+<p>Worst case complexity: worst case complexity of <code>HashMap</code>'s lookup if the
+queue was built with <code>fastLookup: true</code>, <code>O(length)</code> otherwise.</p>
+<pre class="source">
+@override
+bool contains(E value) {
+ return _fastLookup
+     ? _positions.containsKey(value)
+     : _elements.contains(value);
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="elementAt">
+<button class="show-code">Code</button>
+<a href="../priority_queue/PriorityQueue.html">E</a> <strong>elementAt</strong>(<a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> index) <a class="anchor-link" href="#elementAt"
+              title="Permalink to PriorityQueue&lt;E&gt;.elementAt">#</a></h4>
+<div class="doc">
+<div class="inherited">
+<p>Returns the 
+<span class="param">index</span>th element.</p>
+<p>If <code>this</code> has fewer than 
+<span class="param">index</span> elements throws a <a class="crossref" href="http://api.dartlang.org/dart_core/RangeError.html">RangeError</a>.</p>
+<p>Note: if <code>this</code> does not have a deterministic iteration order then the
+function may simply return any element without any iteration if there are
+at least 
+<span class="param">index</span> elements in <code>this</code>.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+E elementAt(int index) =&gt; _elements[index];
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="every">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> <strong>every</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> f(<a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#every"
+              title="Permalink to PriorityQueue&lt;E&gt;.every">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns true if every elements of this collection satisify the
+predicate <code>test</code>. Returns <code>false</code> otherwise.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+bool every(bool f(E element)) {
+ for (E element in this) {
+   if (!f(element)) return false;
+ }
+ return true;
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="expand">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a> <strong>expand</strong>(<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a> f(<a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#expand"
+              title="Permalink to PriorityQueue&lt;E&gt;.expand">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Expands each element of this <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> into zero or more elements.</p>
+<p>The resulting Iterable runs through the elements returned
+by 
+<span class="param">f</span> for each element of this, in order.</p>
+<p>The returned <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> is lazy, and calls 
+<span class="param">f</span> for each element
+of this every time it's iterated.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable expand(Iterable f(E element)) =&gt;
+   new ExpandIterable&lt;E, dynamic&gt;(this, f);
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="firstWhere">
+<button class="show-code">Code</button>
+dynamic <strong>firstWhere</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> test(<a href="../priority_queue/PriorityQueue.html">E</a> value), {<a href="http://api.dartlang.org/dart_core/Object.html" ref="external">Object</a> orElse()}) <a class="anchor-link" href="#firstWhere"
+              title="Permalink to PriorityQueue&lt;E&gt;.firstWhere">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns the first element that satisfies the given predicate 
+<span class="param">test</span>.</p>
+<p>If none matches, the result of invoking the 
+<span class="param">orElse</span> function is
+returned. By default, when 
+<span class="param">orElse</span> is <code>null</code>, a <a class="crossref" href="http://api.dartlang.org/dart_core/StateError.html">StateError</a> is
+thrown.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+dynamic firstWhere(bool test(E value), { Object orElse() }) {
+ for (E element in this) {
+   if (test(element)) return element;
+ }
+ if (orElse != null) return orElse();
+ throw new StateError("No matching element");
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="fold">
+<button class="show-code">Code</button>
+dynamic <strong>fold</strong>(initialValue, combine(previousValue, <a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#fold"
+              title="Permalink to PriorityQueue&lt;E&gt;.fold">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Reduces a collection to a single value by iteratively combining each
+element of the collection with an existing value using the provided
+function.</p>
+<p>Use 
+<span class="param">initialValue</span> as the initial value, and the function 
+<span class="param">combine</span> to
+create a new value from the previous one and an element.</p>
+<p>Example of calculating the sum of an iterable:</p>
+<pre><code>iterable.fold(0, (prev, element) =&gt; prev + element);
+</code></pre>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+dynamic fold(var initialValue,
+            dynamic combine(var previousValue, E element)) {
+ var value = initialValue;
+ for (E element in this) value = combine(value, element);
+ return value;
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="forEach">
+<button class="show-code">Code</button>
+void <strong>forEach</strong>(void f(<a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#forEach"
+              title="Permalink to PriorityQueue&lt;E&gt;.forEach">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Applies the function 
+<span class="param">f</span> to each element of this collection.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+void forEach(void f(E element)) {
+ for (E element in this) f(element);
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="join">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> <strong>join</strong>([<a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> separator = ""]) <a class="anchor-link" href="#join"
+              title="Permalink to PriorityQueue&lt;E&gt;.join">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Converts each element to a <a class="crossref" href="http://api.dartlang.org/dart_core/String.html">String</a> and concatenates the strings.</p>
+<p>Converts each element to a <a class="crossref" href="http://api.dartlang.org/dart_core/String.html">String</a> by calling <a class="crossref" href="http://api.dartlang.org/dart_core/Object.html#toString">Object.toString</a> on it.
+Then concatenates the strings, optionally separated by the 
+<span class="param">separator</span>
+string.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+String join([String separator = ""]) {
+ Iterator&lt;E&gt; iterator = this.iterator;
+ if (!iterator.moveNext()) return "";
+ StringBuffer buffer = new StringBuffer();
+ if (separator == null || separator == "") {
+   do {
+     buffer.write("${iterator.current}");
+   } while (iterator.moveNext());
+ } else {
+   buffer.write("${iterator.current}");
+   while (iterator.moveNext()) {
+     buffer.write(separator);
+     buffer.write("${iterator.current}");
+   }
+ }
+ return buffer.toString();
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="lastWhere">
+<button class="show-code">Code</button>
+dynamic <strong>lastWhere</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> test(<a href="../priority_queue/PriorityQueue.html">E</a> value), {<a href="http://api.dartlang.org/dart_core/Object.html" ref="external">Object</a> orElse()}) <a class="anchor-link" href="#lastWhere"
+              title="Permalink to PriorityQueue&lt;E&gt;.lastWhere">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns the last element that satisfies the given predicate 
+<span class="param">test</span>.</p>
+<p>If none matches, the result of invoking the 
+<span class="param">orElse</span> function is
+returned. By default, when 
+<span class="param">orElse</span> is <code>null</code>, a <a class="crossref" href="http://api.dartlang.org/dart_core/StateError.html">StateError</a> is
+thrown.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+dynamic lastWhere(bool test(E value), { Object orElse() }) {
+ E result = null;
+ bool foundMatching = false;
+ for (E element in this) {
+   if (test(element)) {
+     result = element;
+     foundMatching = true;
+   }
+ }
+ if (foundMatching) return result;
+ if (orElse != null) return orElse();
+ throw new StateError("No matching element");
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="map">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a> <strong>map</strong>(f(<a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#map"
+              title="Permalink to PriorityQueue&lt;E&gt;.map">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns a lazy <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> where each element <code>e</code> of <code>this</code> is replaced
+by the result of <code>f(e)</code>.</p>
+<p>This method returns a view of the mapped elements. As long as the
+returned <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> is not iterated over, the supplied function 
+<span class="param">f</span> will
+not be invoked. The transformed elements will not be cached. Iterating
+multiple times over the the returned <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> will invoke the supplied
+function 
+<span class="param">f</span> multiple times on the same element.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable map(f(E element)) =&gt; new MappedIterable&lt;E, dynamic&gt;(this, f);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="peek">
+<button class="show-code">Code</button>
+<a href="../priority_queue/PriorityQueue.html">E</a> <strong>peek</strong>() <a class="anchor-link" href="#peek"
+              title="Permalink to PriorityQueue&lt;E&gt;.peek">#</a></h4>
+<div class="doc">
+<p>Returns the maximum element of this queue without removing it.</p>
+<p>Worst case complexity: <code>O(1)</code>.</p>
+<pre class="source">
+E peek() {
+ if (isEmpty) {
+   throw new StateError("queue is empty");
+ }
+ return _elements[0];
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="reduce">
+<button class="show-code">Code</button>
+<a href="../priority_queue/PriorityQueue.html">E</a> <strong>reduce</strong>(<a href="../priority_queue/PriorityQueue.html">E</a> combine(<a href="../priority_queue/PriorityQueue.html">E</a> value, <a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#reduce"
+              title="Permalink to PriorityQueue&lt;E&gt;.reduce">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Reduces a collection to a single value by iteratively combining elements
+of the collection using the provided function.</p>
+<p>Example of calculating the sum of an iterable:</p>
+<pre><code>iterable.reduce((value, element) =&gt; value + element);
+</code></pre>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+E reduce(E combine(E value, E element)) {
+ Iterator&lt;E&gt; iterator = this.iterator;
+ if (!iterator.moveNext()) {
+   throw new StateError("No elements");
+ }
+ E value = iterator.current;
+ while (iterator.moveNext()) {
+   value = combine(value, iterator.current);
+ }
+ return value;
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="remove">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> <strong>remove</strong>(<a href="../priority_queue/PriorityQueue.html">E</a> value) <a class="anchor-link" href="#remove"
+              title="Permalink to PriorityQueue&lt;E&gt;.remove">#</a></h4>
+<div class="doc">
+<p>Removes the first occurence of value from this queue.</p>
+<p>Returns true if value was in the queue, false otherwise. Worst case
+complexity: worst case complexity of <code>HashMap</code>'s lookup + <code>O(log length)</code>
+if the queue was built with <code>fastLookup: true</code>, <code>O(length)</code> otherwise.</p>
+<pre class="source">
+bool remove(E value) {
+ if (_fastLookup) {
+   final pos = _positions[value];
+   if (pos != null &amp;&amp; !pos.isEmpty) {
+     _removeAt(pos.first);
+     return true;
+   }
+ } else {
+   int i = 0;
+   while ((i &lt; _elements.length) &amp;&amp; (_elements[i] != value)) {
+     i++;
+   }
+   if (i != _elements.length) {
+     _removeAt(i);
+     return true;
+   }
+ }
+ return false;
+}
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="removeMax">
+<button class="show-code">Code</button>
+<a href="../priority_queue/PriorityQueue.html">E</a> <strong>removeMax</strong>() <a class="anchor-link" href="#removeMax"
+              title="Permalink to PriorityQueue&lt;E&gt;.removeMax">#</a></h4>
+<div class="doc">
+<p>Removes the maximum element from this queue and returns it.</p>
+<p>Worst case complexity: <code>O(log length)</code>.</p>
+<pre class="source">
+E removeMax() {
+ if (isEmpty) {
+   throw new StateError("queue is empty");
+ }
+ final last = _elements.length - 1;
+ final origRoot = _elements[0];
+ final origLast = _elements[last];
+ _elements[0] = origLast;
+ _elements.removeLast();
+ if (_fastLookup) {
+   if (_elements.isEmpty) {
+     _positions.clear();
+   } else {
+     final pos1 = _positions[origLast];
+     final pos2 = _positions[origRoot];
+     pos1.remove(last);
+     pos2.remove(0);
+     pos1.add(0);
+     if (pos2.isEmpty) {
+       _positions.remove(origRoot);
+     }
+   }
+ }
+ _heapify(0);
+ return origRoot;
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="singleWhere">
+<button class="show-code">Code</button>
+<a href="../priority_queue/PriorityQueue.html">E</a> <strong>singleWhere</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> test(<a href="../priority_queue/PriorityQueue.html">E</a> value)) <a class="anchor-link" href="#singleWhere"
+              title="Permalink to PriorityQueue&lt;E&gt;.singleWhere">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns the single element that satisfies 
+<span class="param">test</span>. If no or more than one
+element match then a <a class="crossref" href="http://api.dartlang.org/dart_core/StateError.html">StateError</a> is thrown.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+E singleWhere(bool test(E value)) {
+ E result = null;
+ bool foundMatching = false;
+ for (E element in this) {
+   if (test(element)) {
+     if (foundMatching) {
+       throw new StateError("More than one matching element");
+     }
+     result = element;
+     foundMatching = true;
+   }
+ }
+ if (foundMatching) return result;
+ throw new StateError("No matching element");
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="skip">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>skip</strong>(<a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> n) <a class="anchor-link" href="#skip"
+              title="Permalink to PriorityQueue&lt;E&gt;.skip">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns an Iterable that skips the first 
+<span class="param">n</span> elements.</p>
+<p>If <code>this</code> has fewer than 
+<span class="param">n</span> elements, then the resulting Iterable is
+empty.</p>
+<p>It is an error if 
+<span class="param">n</span> is negative.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable&lt;E&gt; skip(int n) {
+ return new SkipIterable&lt;E&gt;(this, n);
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="skipWhile">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>skipWhile</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> test(<a href="../priority_queue/PriorityQueue.html">E</a> value)) <a class="anchor-link" href="#skipWhile"
+              title="Permalink to PriorityQueue&lt;E&gt;.skipWhile">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns an Iterable that skips elements while 
+<span class="param">test</span> is satisfied.</p>
+<p>The filtering happens lazily. Every new Iterator of the returned
+Iterable iterates over all elements of <code>this</code>.</p>
+<p>As long as the iterator's elements satisfy 
+<span class="param">test</span> they are
+discarded. Once an element does not satisfy the 
+<span class="param">test</span> the iterator stops
+testing and uses every later element unconditionally. That is, the elements
+of the returned Iterable are the elements of <code>this</code> starting from the
+first element that does not satisfy 
+<span class="param">test</span>.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable&lt;E&gt; skipWhile(bool test(E value)) {
+ return new SkipWhileIterable&lt;E&gt;(this, test);
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="take">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>take</strong>(<a href="http://api.dartlang.org/dart_core/int.html" ref="external">int</a> n) <a class="anchor-link" href="#take"
+              title="Permalink to PriorityQueue&lt;E&gt;.take">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns an <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> with at most 
+<span class="param">n</span> elements.</p>
+<p>The returned <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> may contain fewer than 
+<span class="param">n</span> elements, if <code>this</code>
+contains fewer than 
+<span class="param">n</span> elements.</p>
+<p>It is an error if 
+<span class="param">n</span> is negative.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable&lt;E&gt; take(int n) {
+ return new TakeIterable&lt;E&gt;(this, n);
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="takeWhile">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>takeWhile</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> test(<a href="../priority_queue/PriorityQueue.html">E</a> value)) <a class="anchor-link" href="#takeWhile"
+              title="Permalink to PriorityQueue&lt;E&gt;.takeWhile">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns an Iterable that stops once 
+<span class="param">test</span> is not satisfied anymore.</p>
+<p>The filtering happens lazily. Every new Iterator of the returned
+Iterable starts iterating over the elements of <code>this</code>.</p>
+<p>When the iterator encounters an element <code>e</code> that does not satisfy 
+<span class="param">test</span>,
+it discards <code>e</code> and moves into the finished state. That is, it does not
+get or provide any more elements.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable&lt;E&gt; takeWhile(bool test(E value)) {
+ return new TakeWhileIterable&lt;E&gt;(this, test);
+}
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="toList">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/List.html" ref="external">List</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>toList</strong>({<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> growable: true}) <a class="anchor-link" href="#toList"
+              title="Permalink to PriorityQueue&lt;E&gt;.toList">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Creates a <a class="crossref" href="http://api.dartlang.org/dart_core/List.html">List</a> containing the elements of this <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a>.</p>
+<p>The elements are in iteration order. The list is fixed-length
+if 
+<span class="param">growable</span> is false.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+List&lt;E&gt; toList({ bool growable: true }) =&gt;
+   new List&lt;E&gt;.from(this, growable: growable);
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="toSet">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Set.html" ref="external">Set</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>toSet</strong>() <a class="anchor-link" href="#toSet"
+              title="Permalink to PriorityQueue&lt;E&gt;.toSet">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Creates a <a class="crossref" href="http://api.dartlang.org/dart_core/Set.html">Set</a> containing the elements of this <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a>.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Set&lt;E&gt; toSet() =&gt; new Set&lt;E&gt;.from(this);
+</pre>
+</div>
+</div>
+<div class="method"><h4 id="toString">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/String.html" ref="external">String</a> <strong>toString</strong>() <a class="anchor-link" href="#toString"
+              title="Permalink to PriorityQueue&lt;E&gt;.toString">#</a></h4>
+<div class="doc">
+<div class="inherited">
+<p>Returns a string representation of (some of) the elements of <code>this</code>.</p>
+<p>Elements are represented by their own <code>toString</code> results.</p>
+<p>The representation always contains the first three elements.
+If there are less than a hundred elements in the iterable, it also
+contains the last two elements.</p>
+<p>If the resulting string isn't above 80 characters, more elements are
+included from the start of the iterable.</p>
+<p>The conversion may omit calling <code>toString</code> on some elements if they
+are known to now occur in the output, and it may stop iterating after
+a hundred elements.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+@override
+String toString() =&gt; _elements.toString();
+</pre>
+</div>
+</div>
+<div class="method inherited"><h4 id="where">
+<button class="show-code">Code</button>
+<a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; <strong>where</strong>(<a href="http://api.dartlang.org/dart_core/bool.html" ref="external">bool</a> f(<a href="../priority_queue/PriorityQueue.html">E</a> element)) <a class="anchor-link" href="#where"
+              title="Permalink to PriorityQueue&lt;E&gt;.where">#</a></h4>
+<div class="inherited-from">inherited from <a href="http://api.dartlang.org/dart_collection/IterableBase.html" ref="external">IterableBase</a> </div><div class="doc">
+<div class="inherited">
+<p>Returns a lazy <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> with all elements that satisfy the
+predicate <code>test</code>.</p>
+<p>This method returns a view of the mapped elements. As long as the
+returned <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> is not iterated over, the supplied function <code>test</code> will
+not be invoked. Iterating will not cache results, and thus iterating
+multiple times over the returned <a class="crossref" href="http://api.dartlang.org/dart_core/Iterable.html">Iterable</a> will invoke the supplied
+function <code>test</code> multiple times on the same element.</p>
+<div class="docs-inherited-from">docs inherited from <a href="http://api.dartlang.org/dart_core/Iterable.html" ref="external">Iterable</a>&lt;<a href="../priority_queue/PriorityQueue.html">E</a>&gt; </div></div>
+<pre class="source">
+Iterable&lt;E&gt; where(bool f(E element)) =&gt; new WhereIterable&lt;E&gt;(this, f);
+</pre>
+</div>
+</div>
+</div>
+        </div>
+        <div class="clear"></div>
+        </div>
+        <div class="footer">
+          <div>This page was generated at 2013-12-04 08:37:02.787</div>
+        </div>
+        <script async src="../client-live-nav.js"></script>
+        </body></html>
+        
