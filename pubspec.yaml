@@ -1,6 +1,6 @@
 name: priority_queue
 author: Paul Brauner <polux@google.com>
-version: 0.1.0
+version: 0.1.1
 description: A sample command-line application
 dev_dependencies:
   args: '>=0.9.0 <0.10.0'
