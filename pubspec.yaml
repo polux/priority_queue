@@ -1,5 +1,6 @@
 name: priority_queue
 author: Paul Brauner <polux@google.com>
+homepage: https://github.com/polux/priority_queue
 version: 0.1.1
 description: A sample command-line application
 dev_dependencies:
