@@ -157,19 +157,19 @@ class Issue extends Result {
 }
 
 _empty(bool fastLookup) => new Empty(fastLookup);
-_from(List<int> values) => (bool fastLookup) => new From(values, fastLookup);
+_from(List<int> values, bool fastLookup) => new From(values, fastLookup);
 
 final constructorCalls =
-    en.singleton(_empty).apply(co.bools)
-  + en.singleton(_from).apply(co.listsOf(co.ints)).apply(co.bools);
+    en.apply(_empty, co.bools)
+  + en.apply(_from, co.listsOf(co.ints), co.bools);
 
 _insert(int i) => new Insert(i);
 _delete(int i) => new Delete(i);
 _peek() => new Peek();
 _pop() => new Pop();
 
-final instructions = en.singleton(_insert).apply(co.ints)
-                   + en.singleton(_delete).apply(co.ints)
+final instructions = en.apply(_insert, co.ints)
+                   + en.apply(_delete, co.ints)
                    + en.singleton(_peek())
                    + en.singleton(_pop());
 
