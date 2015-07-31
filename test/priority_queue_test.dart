@@ -23,7 +23,7 @@ main(List<String> arguments) {
   final flags = parser.parse(arguments);
 
   if (flags['help']) {
-    print(parser.getUsage());
+    print(parser.usage);
     return;
   }
 

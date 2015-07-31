@@ -34,7 +34,7 @@ class PriorityQueue<E> extends IterableBase<E> {
       , _positions = fastLookup ? new Map<E, Set<int>>() : null {
      if (_fastLookup) {
        for (int i = 0; i < _elements.length; i++) {
-         final pos = _positions
+         _positions
              .putIfAbsent(_elements[i], () => new Set<int>())
              .add(i);
        }
@@ -203,7 +203,6 @@ class PriorityQueue<E> extends IterableBase<E> {
   }
 
   void _removeAt(i) {
-    final elem = _elements[i];
     _forceBubbleUp(i);
     removeMax();
   }
